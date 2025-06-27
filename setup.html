@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Calendar Sharing Setup</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #1a73e8;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+        
+        .help-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .button-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .btn-primary {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #1557b0;
+        }
+        
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e0e0e0;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            background: #e8f0fe;
+            border-color: #1a73e8;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+        }
+        
+        .status.error {
+            background: #ffeaea;
+            border: 1px solid #f44336;
+            color: #c62828;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            color: #1565c0;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .preview-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .preview-events {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+        
+        .preview-events li {
+            background: white;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border-left: 4px solid #1a73e8;
+        }
+        
+        .event-title {
+            font-weight: 500;
+        }
+        
+        .event-time {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .privacy-note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .privacy-note h3 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+        
+        .privacy-note p {
+            margin: 5px 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 Calendar Sharing Setup</h1>
+        <p class="subtitle">Share your calendar events from a specific date forward</p>
+        
+        <div class="privacy-note">
+            <h3>🔒 Privacy First</h3>
+            <p>• Only events from your chosen date forward will be shared</p>
+            <p>• Events marked "private" will never be shared</p>
+            <p>• Your partner won't get access to your full calendar</p>
+        </div>
+        
+        <form id="setupForm">
+            <div class="form-group">
+                <label for="userName">Your Name:</label>
+                <input type="text" id="userName" name="userName" placeholder="e.g., Alex" required>
+                <div class="help-text">This will appear before your events (e.g., "Alex: Dinner plans")</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="personalCalendarId">Which calendar to share from:</label>
+                <select id="personalCalendarId" name="personalCalendarId" required>
+                    <option value="">Loading your calendars...</option>
+                </select>
+                <div class="help-text">Choose which of your calendars to share events from</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="cutoffDate">Share events from:</label>
+                <input type="date" id="cutoffDate" name="cutoffDate" required>
+                <div class="help-text">Only events from this date onward will be shared</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="sharedCalendarId">Shared Calendar ID:</label>
+                <input type="text" id="sharedCalendarId" name="sharedCalendarId" 
+                       placeholder="e.g., shared-calendar@group.calendar.google.com"
+                       value="<?= sharedCalendarId ?>" required>
+                <div class="help-text">Your partner will provide this ID</div>
+            </div>
+            
+            <div class="button-container">
+                <button type="button" class="btn-secondary" onclick="previewEvents()">
+                    🔍 Preview What Will Be Shared
+                </button>
+                <button type="submit" class="btn-primary" id="setupBtn">
+                    🚀 Start Sharing
+                </button>
+            </div>
+        </form>
+        
+        <div id="previewSection" class="preview-section">
+            <h3>📋 Preview: Events That Will Be Shared</h3>
+            <div id="previewContent"></div>
+        </div>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        // Set default cutoff date to today
+        document.getElementById('cutoffDate').valueAsDate = new Date();
+        
+        // Handle form submission
+        document.getElementById('setupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            setupCalendarSharing();
+        });
+        
+        function setupCalendarSharing() {
+            const formData = getFormData();
+            const statusDiv = document.getElementById('status');
+            const setupBtn = document.getElementById('setupBtn');
+            
+            // Show loading
+            statusDiv.className = 'status info';
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Setting up calendar sharing...</div>';
+            setupBtn.disabled = true;
+            
+            // Call the backend function
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    setupBtn.disabled = false;
+                    if (result.success) {
+                        statusDiv.className = 'status success';
+                        statusDiv.innerHTML = `
+                            <h3>✅ Success!</h3>
+                            <p>${result.message}</p>
+                            <p><strong>Your calendar events will now sync automatically every 4 hours.</strong></p>
+                            <p>You can close this page - everything is set up!</p>
+                        `;
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.innerHTML = `
+                            <h3>❌ Setup Failed</h3>
+                            <p>${result.error}</p>
+                            <p>Please check the information above and try again.</p>
+                        `;
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    setupBtn.disabled = false;
+                    statusDiv.className = 'status error';
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = `
+                        <h3>❌ Error</h3>
+                        <p>Something went wrong: ${error.message}</p>
+                        <p>Please try again or contact support.</p>
+                    `;
+                })
+                .setupCalendarSharing(formData);
+        }
+        
+        function previewEvents() {
+            const formData = getFormData();
+            const previewSection = document.getElementById('previewSection');
+            const previewContent = document.getElementById('previewContent');
+            
+            if (!formData.cutoffDate || !formData.userName || !formData.personalCalendarId) {
+                alert('Please fill in all fields first');
+                return;
+            }
+            
+            previewContent.innerHTML = '<div class="loading"><div class="spinner"></div>Loading preview...</div>';
+            previewSection.style.display = 'block';
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        let html = `
+                            <p><strong>${result.toShare} out of ${result.total}</strong> events from the next 30 days will be shared:</p>
+                        `;
+                        
+                        if (result.examples && result.examples.length > 0) {
+                            html += '<ul class="preview-events">';
+                            result.examples.forEach(event => {
+                                html += `
+                                    <li>
+                                        <div class="event-title">${event.title}</div>
+                                        <div class="event-time">${event.date} at ${event.time}</div>
+                                    </li>
+                                `;
+                            });
+                            html += '</ul>';
+                            
+                            if (result.toShare > result.examples.length) {
+                                html += `<p><em>...and ${result.toShare - result.examples.length} more events</em></p>`;
+                            }
+                        } else {
+                            html += '<p><em>No events found in the next 30 days after your cutoff date.</em></p>';
+                        }
+                        
+                        previewContent.innerHTML = html;
+                    } else {
+                        previewContent.innerHTML = `<p class="error">Preview failed: ${result.error}</p>`;
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    previewContent.innerHTML = `<p class="error">Preview failed: ${error.message}</p>`;
+                })
+                .previewSharing(formData);
+        }
+        
+        function getFormData() {
+            return {
+                userName: document.getElementById('userName').value,
+                cutoffDate: document.getElementById('cutoffDate').value,
+                sharedCalendarId: document.getElementById('sharedCalendarId').value,
+                personalCalendarId: document.getElementById('personalCalendarId').value
+            };
+        }
+        
+        // Load user's calendars and set up defaults
+        window.addEventListener('load', function() {
+            // Load calendars
+            loadUserCalendars();
+            
+            // Set default cutoff date
+            const cutoffInput = document.getElementById('cutoffDate');
+            if (!cutoffInput.value) {
+                // Suggest first day of current month
+                const today = new Date();
+                const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                cutoffInput.valueAsDate = firstOfMonth;
+            }
+        });
+        
+        function loadUserCalendars() {
+            const select = document.getElementById('personalCalendarId');
+            
+            google.script.run
+                .withSuccessHandler(function(calendars) {
+                    select.innerHTML = '<option value="">Choose a calendar...</option>';
+                    
+                    calendars.forEach(cal => {
+                        const option = document.createElement('option');
+                        option.value = cal.id;
+                        option.textContent = cal.name + (cal.isOwned ? ' (Your calendar)' : ' (Shared)');
+                        
+                        // Pre-select the primary calendar if it exists
+                        if (cal.id === cal.email || cal.name.includes('primary') || cal.isOwned) {
+                            option.selected = true;
+                        }
+                        
+                        select.appendChild(option);
+                    });
+                })
+                .withFailureHandler(function(error) {
+                    select.innerHTML = '<option value="">Error loading calendars</option>';
+                    console.error('Failed to load calendars:', error);
+                })
+                .getMyCalendars();
+        }
+    </script>
+</body>
+</html>
