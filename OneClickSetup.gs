@@ -182,10 +182,16 @@ function performSync() {
   const sharedCalendar = CalendarApp.getCalendarById(config.sharedCalendarId);
   
   // Calculate date range - fix timezone issues
-  const cutoffDate = new Date(config.cutoffDate + 'T00:00:00');
+  // Parse the date string properly to avoid timezone shifts
+  const [year, month, day] = config.cutoffDate.split('-').map(Number);
+  const cutoffDate = new Date(year, month - 1, day, 0, 0, 0); // month is 0-indexed
+  
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + config.syncDaysAhead);
   
+  console.log(`Config cutoff date string: ${config.cutoffDate}`);
+  console.log(`Parsed cutoff date: ${cutoffDate.toISOString()}`);
+  console.log(`Syncing from calendar: ${personalCalendar.getName()} (${personalCalendar.getId()})`);
   console.log(`Syncing events from ${cutoffDate.toDateString()} to ${endDate.toDateString()}`);
   
   // Get events from personal calendar after cutoff date
@@ -401,9 +407,16 @@ function previewSharing(formData) {
       CalendarApp.getCalendarById(formData.personalCalendarId) : 
       CalendarApp.getDefaultCalendar();
       
-    const cutoffDate = new Date(formData.cutoffDate + 'T00:00:00');
+    // Parse date properly to avoid timezone issues
+    const [year, month, day] = formData.cutoffDate.split('-').map(Number);
+    const cutoffDate = new Date(year, month - 1, day, 0, 0, 0);
+    
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 30); // Next 30 days for preview
+    
+    console.log(`Preview - Calendar: ${personalCalendar.getName()}`);
+    console.log(`Preview - Cutoff date: ${cutoffDate.toDateString()}`);
+    console.log(`Preview - End date: ${endDate.toDateString()}`);
     
     const events = personalCalendar.getEvents(cutoffDate, endDate);
     const eventsToShare = events.filter(event => !shouldSkipEvent(event));
@@ -501,8 +514,9 @@ function stopSharing(removeEvents = false) {
 function getMyCalendars() {
   try {
     const calendars = CalendarApp.getAllCalendars();
+    console.log(`Found ${calendars.length} calendars`);
     
-    return calendars.map(cal => ({
+    const calendarList = calendars.map(cal => ({
       id: cal.getId(),
       name: cal.getName(),
       isOwned: cal.isOwnedByMe(),
@@ -513,6 +527,9 @@ function getMyCalendars() {
       if (!a.isOwned && b.isOwned) return 1;
       return a.name.localeCompare(b.name);
     });
+    
+    console.log('Available calendars:', JSON.stringify(calendarList, null, 2));
+    return calendarList;
     
   } catch (error) {
     console.error('Error loading calendars:', error);
