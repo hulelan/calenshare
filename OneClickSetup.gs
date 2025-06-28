@@ -76,8 +76,11 @@ function setupCalendarSharing(formData) {
  */
 function testAccess(formData) {
   try {
-    // Test personal calendar access
-    const personalCalendar = CalendarApp.getCalendarById(formData.personalCalendarId);
+    // Test personal calendar access - fallback to default if not specified
+    const personalCalendar = formData.personalCalendarId ? 
+      CalendarApp.getCalendarById(formData.personalCalendarId) : 
+      CalendarApp.getDefaultCalendar();
+    
     if (!personalCalendar) {
       return { success: false, error: 'Cannot access your personal calendar. Check the calendar ID.' };
     }
@@ -124,7 +127,7 @@ function saveConfig(formData) {
   const config = {
     cutoffDate: formData.cutoffDate,
     sharedCalendarId: formData.sharedCalendarId,
-    personalCalendarId: formData.personalCalendarId,
+    personalCalendarId: formData.personalCalendarId || Session.getActiveUser().getEmail(),
     userName: formData.userName || 'Partner',
     setupDate: new Date().toISOString(),
     syncDaysAhead: 90
@@ -171,7 +174,11 @@ function setupTriggers() {
 function performSync() {
   const config = getConfig();
   
-  const personalCalendar = CalendarApp.getCalendarById(config.personalCalendarId);
+  // Use personalCalendarId if available, otherwise fall back to default
+  const personalCalendar = config.personalCalendarId ? 
+    CalendarApp.getCalendarById(config.personalCalendarId) : 
+    CalendarApp.getDefaultCalendar();
+    
   const sharedCalendar = CalendarApp.getCalendarById(config.sharedCalendarId);
   
   // Calculate date range - fix timezone issues
@@ -389,7 +396,11 @@ function autoSync() {
  */
 function previewSharing(formData) {
   try {
-    const personalCalendar = CalendarApp.getCalendarById(formData.personalCalendarId);
+    // Use personalCalendarId if provided, otherwise use default
+    const personalCalendar = formData.personalCalendarId ? 
+      CalendarApp.getCalendarById(formData.personalCalendarId) : 
+      CalendarApp.getDefaultCalendar();
+      
     const cutoffDate = new Date(formData.cutoffDate + 'T00:00:00');
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 30); // Next 30 days for preview
