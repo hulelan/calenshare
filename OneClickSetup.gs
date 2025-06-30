@@ -262,19 +262,16 @@ function shouldSkipEvent(event) {
   const title = event.getTitle().toLowerCase();
   const originalTitle = event.getTitle();
   
-  // Skip if marked as private
-  if (event.getVisibility() === CalendarApp.Visibility.PRIVATE) {
-    console.log(`Filtering private event: "${originalTitle}"`);
+  // Skip if title contains the ignore keyword
+  if (title.includes('calignore')) {
+    console.log(`Filtering event with 'calignore' tag: "${originalTitle}"`);
     return true;
   }
   
-  // Skip if title contains private keywords
-  const privateKeywords = ['private', 'confidential', 'personal'];
-  for (const keyword of privateKeywords) {
-    if (title.includes(keyword)) {
-      console.log(`Filtering event with keyword '${keyword}': "${originalTitle}"`);
-      return true;
-    }
+  // Optionally still skip private events - comment this out if you want to share private events
+  if (event.getVisibility() === CalendarApp.Visibility.PRIVATE) {
+    console.log(`Filtering private event: "${originalTitle}"`);
+    return true;
   }
   
   return false;
@@ -448,7 +445,9 @@ function previewSharing(formData) {
       })),
       filterReasons: filteredEvents.slice(0, 3).map(event => ({
         title: event.getTitle(),
-        reason: event.getVisibility() === CalendarApp.Visibility.PRIVATE ? 'Marked as private' : 'Contains filtered keyword'
+        reason: event.getTitle().toLowerCase().includes('calignore') ? 
+          'Contains "calignore" tag' : 
+          'Marked as private in Google Calendar'
       }))
     };
     
