@@ -260,9 +260,11 @@ function syncEvent(personalEvent, sharedCalendar, config) {
  */
 function shouldSkipEvent(event) {
   const title = event.getTitle().toLowerCase();
+  const originalTitle = event.getTitle();
   
   // Skip if marked as private
   if (event.getVisibility() === CalendarApp.Visibility.PRIVATE) {
+    console.log(`Filtering private event: "${originalTitle}"`);
     return true;
   }
   
@@ -270,6 +272,7 @@ function shouldSkipEvent(event) {
   const privateKeywords = ['private', 'confidential', 'personal'];
   for (const keyword of privateKeywords) {
     if (title.includes(keyword)) {
+      console.log(`Filtering event with keyword '${keyword}': "${originalTitle}"`);
       return true;
     }
   }
@@ -419,16 +422,33 @@ function previewSharing(formData) {
     console.log(`Preview - End date: ${endDate.toDateString()}`);
     
     const events = personalCalendar.getEvents(cutoffDate, endDate);
-    const eventsToShare = events.filter(event => !shouldSkipEvent(event));
+    const eventsToShare = [];
+    const filteredEvents = [];
+    
+    // Separate events into shareable and filtered
+    events.forEach(event => {
+      if (shouldSkipEvent(event)) {
+        filteredEvents.push(event);
+      } else {
+        eventsToShare.push(event);
+      }
+    });
+    
+    console.log(`Preview complete: ${eventsToShare.length} to share, ${filteredEvents.length} filtered`);
     
     return {
       success: true,
       total: events.length,
       toShare: eventsToShare.length,
+      filtered: filteredEvents.length,
       examples: eventsToShare.slice(0, 5).map(event => ({
         title: `${formData.userName || 'You'}: ${event.getTitle()}`,
         date: event.getStartTime().toLocaleDateString(),
         time: event.isAllDayEvent() ? 'All day' : event.getStartTime().toLocaleTimeString()
+      })),
+      filterReasons: filteredEvents.slice(0, 3).map(event => ({
+        title: event.getTitle(),
+        reason: event.getVisibility() === CalendarApp.Visibility.PRIVATE ? 'Marked as private' : 'Contains filtered keyword'
       }))
     };
     

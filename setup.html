@@ -339,6 +339,10 @@
                             <p><strong>${result.toShare} out of ${result.total}</strong> events from the next 30 days will be shared:</p>
                         `;
                         
+                        if (result.filtered > 0) {
+                            html += `<p style="color: #666; font-size: 14px;">ℹ️ ${result.filtered} events will be filtered out for privacy</p>`;
+                        }
+                        
                         if (result.examples && result.examples.length > 0) {
                             html += '<ul class="preview-events">';
                             result.examples.forEach(event => {
@@ -356,6 +360,19 @@
                             }
                         } else {
                             html += '<p><em>No events found in the next 30 days after your cutoff date.</em></p>';
+                        }
+                        
+                        if (result.filterReasons && result.filterReasons.length > 0) {
+                            html += '<details style="margin-top: 15px; font-size: 14px; color: #666;">';
+                            html += '<summary style="cursor: pointer;">Why were some events filtered?</summary>';
+                            html += '<div style="margin-top: 10px;">';
+                            result.filterReasons.forEach(item => {
+                                html += `<p>• "${item.title}" - ${item.reason}</p>`;
+                            });
+                            if (result.filtered > result.filterReasons.length) {
+                                html += `<p><em>...and ${result.filtered - result.filterReasons.length} more</em></p>`;
+                            }
+                            html += '</div></details>';
                         }
                         
                         previewContent.innerHTML = html;
