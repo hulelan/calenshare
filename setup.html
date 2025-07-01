@@ -203,9 +203,25 @@
             margin: 5px 0;
             color: #856404;
         }
+        
+        .section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .current-status {
+            background: #e8f0fe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
+    <!-- Setup Section -->
+    <div id="setupSection">
     <div class="container">
         <h1>📅 Calendar Sharing Setup</h1>
         <p class="subtitle">Share your calendar events from a specific date forward</p>
@@ -264,6 +280,60 @@
         
         <div id="status" class="status"></div>
     </div>
+    
+    <!-- Management Section (hidden initially) -->
+    <div id="managementSection" style="display: none;">
+        <div class="container" style="margin-top: 20px;">
+            <h1>📅 Calendar Management</h1>
+            <p class="subtitle">Control your calendar sync and manage events</p>
+            
+            <div class="current-status" style="background: #e8f0fe; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 10px 0; color: #1a73e8;">Current Status</h3>
+                <div id="statusContent">
+                    <div class="loading"><div class="spinner"></div>Loading status...</div>
+                </div>
+            </div>
+            
+            <!-- Sync Control -->
+            <div class="section" style="margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="margin-top: 0;">🔄 Sync Control</h3>
+                <div class="button-container">
+                    <button class="btn-primary" onclick="syncNow()" style="margin: 5px;">🔄 Sync Now</button>
+                    <button class="btn-secondary" onclick="pauseSync()" style="margin: 5px;">⏸️ Pause Sync</button>
+                    <button class="btn-secondary" onclick="resumeSync()" style="margin: 5px;">▶️ Resume Sync</button>
+                </div>
+            </div>
+            
+            <!-- Remove Your Events -->
+            <div class="section" style="margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="margin-top: 0;">🗑️ Remove Your Events</h3>
+                <p>Remove all events that you have synced to the shared calendar.</p>
+                <div class="button-container">
+                    <button class="btn-secondary" onclick="removeMyEvents()" style="background: #d93025; color: white; border: none;">Remove My Events</button>
+                </div>
+            </div>
+            
+            <!-- Remove by Person -->
+            <div class="section" style="margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="margin-top: 0;">👤 Remove Events by Person</h3>
+                <div class="form-group">
+                    <label for="personNameRemove">Person's Name:</label>
+                    <input type="text" id="personNameRemove" placeholder="e.g., Alex">
+                    <div class="help-text">Enter the name that appears before events</div>
+                </div>
+                <div class="button-container">
+                    <button class="btn-secondary" onclick="removePersonEvents()" style="background: #d93025; color: white; border: none;">Remove This Person's Events</button>
+                </div>
+            </div>
+            
+            <!-- Back to Setup -->
+            <div class="button-container" style="margin-top: 30px;">
+                <button class="btn-secondary" onclick="backToSetup()">← Back to Setup</button>
+            </div>
+            
+            <div id="managementStatus" class="status" style="margin-top: 20px;"></div>
+        </div>
+    </div>
 
     <script>
         // Set default cutoff date to today
@@ -292,15 +362,17 @@
                     setupBtn.disabled = false;
                     if (result.success) {
                         statusDiv.className = 'status success';
-                        const currentUrl = window.location.href.split('?')[0];
                         statusDiv.innerHTML = `
                             <h3>✅ Success!</h3>
                             <p>${result.message}</p>
                             <p><strong>Your calendar events will now sync automatically every 4 hours.</strong></p>
-                            <p>You can close this page - everything is set up!</p>
-                            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e0e0e0;">
-                            <p><a href="${currentUrl}?mode=manage" style="color: #1a73e8; text-decoration: none;">🔧 Go to Management Page</a> to control syncing or remove events.</p>
                         `;
+                        // Show management section after successful setup
+                        setTimeout(() => {
+                            document.getElementById('setupSection').style.display = 'none';
+                            document.getElementById('managementSection').style.display = 'block';
+                            loadSyncStatus();
+                        }, 2000);
                     } else {
                         statusDiv.className = 'status error';
                         statusDiv.innerHTML = `
@@ -440,6 +512,166 @@
                 })
                 .getMyCalendars();
         }
+        
+        // Management functions
+        function loadSyncStatus() {
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    const statusContent = document.getElementById('statusContent');
+                    if (result.success) {
+                        let html = `
+                            <p><strong>Your Name:</strong> ${result.config.userName}</p>
+                            <p><strong>Setup Date:</strong> ${new Date(result.config.setupDate).toLocaleDateString()}</p>
+                            <p><strong>Cutoff Date:</strong> ${result.config.cutoffDate}</p>
+                            <p><strong>Sync Status:</strong> ${result.isActive ? '✅ Active' : '❌ Paused'}</p>
+                            <p><strong>Sync Frequency:</strong> ${result.nextSync}</p>
+                        `;
+                        statusContent.innerHTML = html;
+                    } else {
+                        statusContent.innerHTML = '<p style="color: #c62828;">No sync configuration found.</p>';
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    document.getElementById('statusContent').innerHTML = 
+                        '<p style="color: #c62828;">Error loading status: ' + error.message + '</p>';
+                })
+                .getSyncStatus();
+        }
+        
+        function showManagementStatus(message, type) {
+            const statusDiv = document.getElementById('managementStatus');
+            statusDiv.className = 'status ' + type;
+            statusDiv.innerHTML = message;
+            statusDiv.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        function syncNow() {
+            showManagementStatus('<div class="loading"><div class="spinner"></div>Syncing calendars...</div>', 'info');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    const changes = [];
+                    if (result.eventsShared > 0) changes.push(`${result.eventsShared} added`);
+                    if (result.eventsUpdated > 0) changes.push(`${result.eventsUpdated} updated`);
+                    if (result.eventsDeleted > 0) changes.push(`${result.eventsDeleted} deleted`);
+                    
+                    const message = changes.length > 0 ? 
+                        `✅ Sync complete! ${changes.join(', ')}` : 
+                        '✅ Sync complete! No changes needed.';
+                    
+                    showManagementStatus(message, 'success');
+                })
+                .withFailureHandler(function(error) {
+                    showManagementStatus('❌ Sync failed: ' + error.message, 'error');
+                })
+                .performSync();
+        }
+        
+        function pauseSync() {
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showManagementStatus('⏸️ Automatic sync paused', 'success');
+                        loadSyncStatus();
+                    } else {
+                        showManagementStatus('❌ ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showManagementStatus('❌ Error: ' + error.message, 'error');
+                })
+                .stopSharing(false);
+        }
+        
+        function resumeSync() {
+            google.script.run
+                .withSuccessHandler(function() {
+                    showManagementStatus('▶️ Automatic sync resumed', 'success');
+                    loadSyncStatus();
+                })
+                .withFailureHandler(function(error) {
+                    showManagementStatus('❌ Error: ' + error.message, 'error');
+                })
+                .setupTriggers();
+        }
+        
+        function removeMyEvents() {
+            if (!confirm('Are you sure you want to remove all your events from the shared calendar?')) {
+                return;
+            }
+            
+            showManagementStatus('<div class="loading"><div class="spinner"></div>Removing your events...</div>', 'info');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showManagementStatus(result.message, 'success');
+                    } else {
+                        showManagementStatus('❌ ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showManagementStatus('❌ Error: ' + error.message, 'error');
+                })
+                .stopSharing(true);
+        }
+        
+        function removePersonEvents() {
+            const personName = document.getElementById('personNameRemove').value.trim();
+            
+            if (!personName) {
+                showManagementStatus('Please enter a person\'s name', 'warning');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to remove all events from ${personName}?`)) {
+                return;
+            }
+            
+            showManagementStatus(`<div class="loading"><div class="spinner"></div>Removing events from ${personName}...</div>`, 'info');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showManagementStatus(`✅ Removed ${result.removedCount} events from ${result.personName}`, 'success');
+                        document.getElementById('personNameRemove').value = '';
+                    } else {
+                        showManagementStatus('❌ ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showManagementStatus('❌ Error: ' + error.message, 'error');
+                })
+                .removeEventsByPerson(personName);
+        }
+        
+        function backToSetup() {
+            document.getElementById('managementSection').style.display = 'none';
+            document.getElementById('setupSection').style.display = 'block';
+        }
+        
+        // Check if already configured on page load
+        window.addEventListener('load', function() {
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success && result.config) {
+                        // Already configured, show management section
+                        document.getElementById('setupSection').style.display = 'none';
+                        document.getElementById('managementSection').style.display = 'block';
+                        loadSyncStatus();
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    // Stay on setup page
+                })
+                .getSyncStatus();
+        });
     </script>
 </body>
 </html>

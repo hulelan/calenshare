@@ -14,22 +14,13 @@
  * Serve the web interface
  */
 function doGet(e) {
-  // Check if this is a management page request
-  if (e.parameter.mode === 'manage') {
-    const template = HtmlService.createTemplateFromFile('manage');
-    return template.evaluate()
-      .setTitle('Calendar Sharing Management')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  }
-  
-  // Default to setup page
   const template = HtmlService.createTemplateFromFile('setup');
   
   // Pass any URL parameters to the template
   template.sharedCalendarId = e.parameter.shared || '';
   
   return template.evaluate()
-    .setTitle('Calendar Sharing Setup')
+    .setTitle('Calendar Sharing Setup & Management')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
