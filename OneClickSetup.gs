@@ -60,7 +60,8 @@ function setupCalendarSharing(formData) {
     return {
       success: true,
       message: `✅ Setup complete! Synced ${syncResult.eventsShared} events.`,
-      details: syncResult
+      details: syncResult,
+      info: 'Events will sync every 4 hours. Deleted events will be automatically removed from the shared calendar.'
     };
     
   } catch (error) {
@@ -198,10 +199,19 @@ function performSync() {
   const personalEvents = personalCalendar.getEvents(cutoffDate, endDate);
   console.log(`Found ${personalEvents.length} events in personal calendar`);
   
+  // Create a set of personal event IDs that should exist
+  const personalEventIds = new Set();
+  personalEvents.forEach(event => {
+    if (!shouldSkipEvent(event)) {
+      personalEventIds.add(event.getId());
+    }
+  });
+  
   let eventsShared = 0;
   let eventsUpdated = 0;
   let eventsSkipped = 0;
   
+  // Sync events from personal to shared
   for (const event of personalEvents) {
     try {
       const result = syncEvent(event, sharedCalendar, config);
@@ -213,10 +223,14 @@ function performSync() {
     }
   }
   
+  // Remove events from shared calendar that no longer exist in personal calendar
+  const eventsDeleted = removeDeletedEvents(sharedCalendar, personalEventIds, config, cutoffDate, endDate);
+  
   const result = {
     eventsShared,
     eventsUpdated,
     eventsSkipped,
+    eventsDeleted,
     totalPersonalEvents: personalEvents.length
   };
   
@@ -380,6 +394,37 @@ function eventNeedsUpdate(personalEvent, sharedEvent, userName) {
 }
 
 /**
+ * Remove events from shared calendar that no longer exist in personal calendar
+ */
+function removeDeletedEvents(sharedCalendar, personalEventIds, config, cutoffDate, endDate) {
+  // Get all events in shared calendar that were synced by this user
+  const sharedEvents = sharedCalendar.getEvents(cutoffDate, endDate);
+  let deletedCount = 0;
+  
+  for (const sharedEvent of sharedEvents) {
+    // Check if this event was synced by the current user
+    const syncedBy = sharedEvent.getTag('syncedBy');
+    const originalEventId = sharedEvent.getTag('originalEventId');
+    
+    if (syncedBy === config.userName && originalEventId) {
+      // Check if this event still exists in the personal calendar
+      if (!personalEventIds.has(originalEventId)) {
+        // Event no longer exists in personal calendar, so delete from shared
+        console.log(`Deleting event that was removed from personal calendar: "${sharedEvent.getTitle()}"`);
+        sharedEvent.deleteEvent();
+        deletedCount++;
+      }
+    }
+  }
+  
+  if (deletedCount > 0) {
+    console.log(`Deleted ${deletedCount} events that were removed from personal calendar`);
+  }
+  
+  return deletedCount;
+}
+
+/**
  * Automatic sync function (called by trigger)
  */
 function autoSync() {
@@ -387,9 +432,16 @@ function autoSync() {
     const result = performSync();
     console.log(`Auto-sync completed: ${JSON.stringify(result)}`);
     
-    // Send notification if there were errors
-    if (result.eventsShared > 0 || result.eventsUpdated > 0) {
-      console.log(`📅 Synced ${result.eventsShared} new events, updated ${result.eventsUpdated} events`);
+    // Log summary of changes
+    const changes = [];
+    if (result.eventsShared > 0) changes.push(`${result.eventsShared} added`);
+    if (result.eventsUpdated > 0) changes.push(`${result.eventsUpdated} updated`);
+    if (result.eventsDeleted > 0) changes.push(`${result.eventsDeleted} deleted`);
+    
+    if (changes.length > 0) {
+      console.log(`📅 Sync changes: ${changes.join(', ')}`);
+    } else {
+      console.log(`📅 No changes needed`);
     }
     
   } catch (error) {
