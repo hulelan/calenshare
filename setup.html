@@ -292,11 +292,14 @@
                     setupBtn.disabled = false;
                     if (result.success) {
                         statusDiv.className = 'status success';
+                        const currentUrl = window.location.href.split('?')[0];
                         statusDiv.innerHTML = `
                             <h3>✅ Success!</h3>
                             <p>${result.message}</p>
                             <p><strong>Your calendar events will now sync automatically every 4 hours.</strong></p>
                             <p>You can close this page - everything is set up!</p>
+                            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e0e0e0;">
+                            <p><a href="${currentUrl}?mode=manage" style="color: #1a73e8; text-decoration: none;">🔧 Go to Management Page</a> to control syncing or remove events.</p>
                         `;
                     } else {
                         statusDiv.className = 'status error';

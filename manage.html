@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Calendar Sharing Management</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #1a73e8;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .section h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+        
+        .help-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        
+        .btn-primary {
+            background: #1a73e8;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #1557b0;
+        }
+        
+        .btn-danger {
+            background: #d93025;
+            color: white;
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+            background: #c72e1c;
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .btn-secondary:hover {
+            background: #e8f0fe;
+            border-color: #1a73e8;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            color: white;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+        }
+        
+        .status.error {
+            background: #ffeaea;
+            border: 1px solid #f44336;
+            color: #c62828;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            color: #1565c0;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .current-status {
+            background: #e8f0fe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .current-status h3 {
+            margin: 0 0 10px 0;
+            color: #1a73e8;
+        }
+        
+        .danger-zone {
+            border: 2px solid #ffeaea;
+            background: #fff8f8;
+        }
+        
+        .confirmation {
+            display: none;
+            background: #ffeaea;
+            border: 1px solid #f44336;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .confirmation p {
+            margin: 0 0 10px 0;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 Calendar Sharing Management</h1>
+        <p class="subtitle">Manage your calendar sync settings and remove events</p>
+        
+        <div class="current-status" id="currentStatus">
+            <h3>Current Status</h3>
+            <div id="statusContent">
+                <div class="loading"><div class="spinner"></div>Loading status...</div>
+            </div>
+        </div>
+        
+        <!-- Sync Control Section -->
+        <div class="section">
+            <h2>🔄 Sync Control</h2>
+            <div class="button-container">
+                <button class="btn btn-primary" onclick="syncNow()">
+                    🔄 Sync Now
+                </button>
+                <button class="btn btn-secondary" onclick="pauseSync()">
+                    ⏸️ Pause Automatic Sync
+                </button>
+                <button class="btn btn-secondary" onclick="resumeSync()">
+                    ▶️ Resume Automatic Sync
+                </button>
+            </div>
+        </div>
+        
+        <!-- Remove Your Events Section -->
+        <div class="section">
+            <h2>🗑️ Remove Your Events</h2>
+            <p>Remove all events that you have synced to the shared calendar.</p>
+            <div class="button-container">
+                <button class="btn btn-danger" onclick="removeMyEvents()">
+                    Remove My Events
+                </button>
+            </div>
+        </div>
+        
+        <!-- Remove Events by Person Section -->
+        <div class="section">
+            <h2>👤 Remove Events by Person</h2>
+            <div class="form-group">
+                <label for="personName">Person's Name:</label>
+                <input type="text" id="personName" placeholder="e.g., Alex">
+                <div class="help-text">Enter the name that appears before events (e.g., "Alex" for "Alex: Meeting")</div>
+            </div>
+            <div class="button-container">
+                <button class="btn btn-danger" onclick="removePersonEvents()">
+                    Remove This Person's Events
+                </button>
+            </div>
+        </div>
+        
+        <!-- Danger Zone -->
+        <div class="section danger-zone">
+            <h2>⚠️ Danger Zone</h2>
+            <p><strong>Warning:</strong> This will remove ALL events from the shared calendar, including events from other people!</p>
+            <div class="button-container">
+                <button class="btn btn-danger" onclick="showNuclearConfirm()">
+                    🚨 Remove ALL Events
+                </button>
+            </div>
+            <div id="nuclearConfirm" class="confirmation">
+                <p><strong>Are you absolutely sure?</strong> This will delete EVERYONE's events from the shared calendar!</p>
+                <div class="button-container">
+                    <button class="btn btn-danger" onclick="removeAllEvents()">
+                        Yes, Delete Everything
+                    </button>
+                    <button class="btn btn-secondary" onclick="hideNuclearConfirm()">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        // Load current status on page load
+        window.addEventListener('load', function() {
+            loadStatus();
+        });
+        
+        function loadStatus() {
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    const statusContent = document.getElementById('statusContent');
+                    if (result.success) {
+                        let html = `
+                            <p><strong>Your Name:</strong> ${result.config.userName}</p>
+                            <p><strong>Setup Date:</strong> ${new Date(result.config.setupDate).toLocaleDateString()}</p>
+                            <p><strong>Cutoff Date:</strong> ${result.config.cutoffDate}</p>
+                            <p><strong>Sync Status:</strong> ${result.isActive ? '✅ Active' : '❌ Paused'}</p>
+                            <p><strong>Sync Frequency:</strong> ${result.nextSync}</p>
+                        `;
+                        statusContent.innerHTML = html;
+                    } else {
+                        statusContent.innerHTML = '<p style="color: #c62828;">No sync configuration found. Please run setup first.</p>';
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    document.getElementById('statusContent').innerHTML = 
+                        '<p style="color: #c62828;">Error loading status: ' + error.message + '</p>';
+                })
+                .getSyncStatus();
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status ' + type;
+            statusDiv.innerHTML = message;
+            statusDiv.style.display = 'block';
+            
+            // Auto-hide after 5 seconds for success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        function syncNow() {
+            showStatus('<div class="loading"><div class="spinner"></div>Syncing calendars...</div>', 'info');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    const changes = [];
+                    if (result.eventsShared > 0) changes.push(`${result.eventsShared} added`);
+                    if (result.eventsUpdated > 0) changes.push(`${result.eventsUpdated} updated`);
+                    if (result.eventsDeleted > 0) changes.push(`${result.eventsDeleted} deleted`);
+                    
+                    const message = changes.length > 0 ? 
+                        `✅ Sync complete! ${changes.join(', ')}` : 
+                        '✅ Sync complete! No changes needed.';
+                    
+                    showStatus(message, 'success');
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Sync failed: ' + error.message, 'error');
+                })
+                .performSync();
+        }
+        
+        function pauseSync() {
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus('⏸️ Automatic sync paused', 'success');
+                        loadStatus();
+                    } else {
+                        showStatus('❌ ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Error: ' + error.message, 'error');
+                })
+                .stopSharing(false);
+        }
+        
+        function resumeSync() {
+            google.script.run
+                .withSuccessHandler(function() {
+                    showStatus('▶️ Automatic sync resumed', 'success');
+                    loadStatus();
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Error: ' + error.message, 'error');
+                })
+                .setupTriggers();
+        }
+        
+        function removeMyEvents() {
+            if (!confirm('Are you sure you want to remove all your events from the shared calendar?')) {
+                return;
+            }
+            
+            showStatus('<div class="loading"><div class="spinner"></div>Removing your events...</div>', 'info');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus(result.message, 'success');
+                    } else {
+                        showStatus('❌ ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Error: ' + error.message, 'error');
+                })
+                .stopSharing(true);
+        }
+        
+        function removePersonEvents() {
+            const personName = document.getElementById('personName').value.trim();
+            
+            if (!personName) {
+                showStatus('Please enter a person\'s name', 'warning');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to remove all events from ${personName}?`)) {
+                return;
+            }
+            
+            showStatus(`<div class="loading"><div class="spinner"></div>Removing events from ${personName}...</div>`, 'info');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus(`✅ Removed ${result.removedCount} events from ${result.personName}`, 'success');
+                        document.getElementById('personName').value = '';
+                    } else {
+                        showStatus('❌ ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Error: ' + error.message, 'error');
+                })
+                .removeEventsByPerson(personName);
+        }
+        
+        function showNuclearConfirm() {
+            document.getElementById('nuclearConfirm').style.display = 'block';
+        }
+        
+        function hideNuclearConfirm() {
+            document.getElementById('nuclearConfirm').style.display = 'none';
+        }
+        
+        function removeAllEvents() {
+            showStatus('<div class="loading"><div class="spinner"></div>Removing ALL events from shared calendar...</div>', 'info');
+            hideNuclearConfirm();
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus(`⚠️ Removed ${result.removedCount} events from the shared calendar`, 'success');
+                    } else {
+                        showStatus('❌ ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Error: ' + error.message, 'error');
+                })
+                .removeAllEventsFromSharedCalendar();
+        }
+    </script>
+</body>
+</html>

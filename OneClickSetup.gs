@@ -14,6 +14,15 @@
  * Serve the web interface
  */
 function doGet(e) {
+  // Check if this is a management page request
+  if (e.parameter.mode === 'manage') {
+    const template = HtmlService.createTemplateFromFile('manage');
+    return template.evaluate()
+      .setTitle('Calendar Sharing Management')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+  
+  // Default to setup page
   const template = HtmlService.createTemplateFromFile('setup');
   
   // Pass any URL parameters to the template
@@ -610,6 +619,126 @@ function getMyCalendars() {
       isOwned: true,
       email: Session.getActiveUser().getEmail()
     }];
+  }
+}
+
+/**
+ * Remove all events from a specific person in the shared calendar
+ * @param {string} personName - The name of the person whose events to remove (e.g., "Alex")
+ * @param {string} sharedCalendarId - Optional: specific shared calendar ID (uses config if not provided)
+ */
+function removeEventsByPerson(personName, sharedCalendarId = null) {
+  try {
+    // Get shared calendar ID from config if not provided
+    if (!sharedCalendarId) {
+      const config = getConfig();
+      sharedCalendarId = config.sharedCalendarId;
+    }
+    
+    const sharedCalendar = CalendarApp.getCalendarById(sharedCalendarId);
+    if (!sharedCalendar) {
+      throw new Error(`Cannot access shared calendar: ${sharedCalendarId}`);
+    }
+    
+    // Get date range - last year to next year
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 1);
+    
+    const endDate = new Date();
+    endDate.setFullYear(endDate.getFullYear() + 1);
+    
+    console.log(`Removing events for ${personName} from ${startDate.toDateString()} to ${endDate.toDateString()}`);
+    
+    const events = sharedCalendar.getEvents(startDate, endDate);
+    let removedCount = 0;
+    
+    for (const event of events) {
+      // Check by tag first (most reliable)
+      const syncedBy = event.getTag('syncedBy');
+      
+      // Also check by title prefix as backup
+      const titleStartsWith = event.getTitle().startsWith(personName + ':');
+      
+      if (syncedBy === personName || titleStartsWith) {
+        console.log(`Removing: "${event.getTitle()}"`);
+        event.deleteEvent();
+        removedCount++;
+      }
+    }
+    
+    console.log(`✅ Removed ${removedCount} events from ${personName}`);
+    
+    return {
+      success: true,
+      removedCount: removedCount,
+      personName: personName
+    };
+    
+  } catch (error) {
+    console.error(`Failed to remove events: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Remove ALL events from the shared calendar (nuclear option)
+ * BE CAREFUL - this removes everyone's events!
+ */
+function removeAllEventsFromSharedCalendar(sharedCalendarId = null) {
+  try {
+    // Get shared calendar ID from config if not provided
+    if (!sharedCalendarId) {
+      const config = getConfig();
+      sharedCalendarId = config.sharedCalendarId;
+    }
+    
+    const sharedCalendar = CalendarApp.getCalendarById(sharedCalendarId);
+    if (!sharedCalendar) {
+      throw new Error(`Cannot access shared calendar: ${sharedCalendarId}`);
+    }
+    
+    // Safety check
+    const confirmDelete = true; // Set to true to actually delete
+    if (!confirmDelete) {
+      return { success: false, error: 'Safety check: Set confirmDelete to true to proceed' };
+    }
+    
+    // Get all events
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 1);
+    
+    const endDate = new Date();
+    endDate.setFullYear(endDate.getFullYear() + 1);
+    
+    const events = sharedCalendar.getEvents(startDate, endDate);
+    const totalEvents = events.length;
+    
+    console.log(`⚠️  Removing ALL ${totalEvents} events from shared calendar...`);
+    
+    // Remove in batches to avoid timeout
+    for (let i = 0; i < events.length; i++) {
+      events[i].deleteEvent();
+      if (i % 50 === 0) {
+        console.log(`Progress: ${i}/${totalEvents} events deleted`);
+      }
+    }
+    
+    console.log(`✅ Removed all ${totalEvents} events from shared calendar`);
+    
+    return {
+      success: true,
+      removedCount: totalEvents
+    };
+    
+  } catch (error) {
+    console.error(`Failed to remove all events: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }
 
